@@ -363,9 +363,12 @@
                         </div>
                     </div>
                     <div class="text-center">
-                        <a href="https://soundcloud.com/placeholder-track1" target="_blank" class="inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-full text-sm hover:bg-indigo-700 transition duration-300 shadow-md">
-                            곡 듣기 (SoundCloud Link)
-                        </a>
+                        <audio controls class="w-full mt-2">
+                            <!-- html 파일과 같은 폴더에 있다면: -->
+                            <source src="quiet-deep-heart.mp3" type="audio/mpeg">
+                            <!-- 만약 music 폴더 안에 넣었다면: src="music/quiet-deep-heart.mp3" -->
+                            브라우저가 오디오 태그를 지원하지 않습니다.
+                        </audio>
                     </div>
                 </div>
 
@@ -379,9 +382,11 @@
                         </div>
                     </div>
                     <div class="text-center">
-                        <a href="https://soundcloud.com/placeholder-track2" target="_blank" class="inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-full text-sm hover:bg-indigo-700 transition duration-300 shadow-md">
-                            곡 듣기 (SoundCloud Link)
-                        </a>
+                        <audio controls class="w-full mt-2">
+                            <source src="data-among-us.mp3" type="audio/mpeg">
+                            <!-- music 폴더 안이면 src="music/data-among-us.mp3" -->
+                            브라우저가 오디오 태그를 지원하지 않습니다.
+                        </audio>
                     </div>
                 </div>
             </div>
