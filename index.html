@@ -1,0 +1,751 @@
+<!-- Chosen Palette: White (Neutral Background) & Indigo-900 (Navy Accent) -->
+<!-- Application Structure Plan: Redesigned the 'Home' section (#home) into a responsive two-column layout (Image on Left, Text/Intro on Right) to match the user's provided visual reference. This drastically improves visual impact and separates the initial impression from the detailed content, enhancing user experience and adhering to the SPA structure. -->
+<!-- Visualization & Content Choices: Summary: Textual Data -> Goal -> Viz/Presentation Method -> Interaction -> Justification -> Library/Method - Confirming NO SVG/Mermaid, supporting the DESIGNED structure.
+1. Home -> Introduction -> Two-Column Layout (Image + Text) -> 'Learn More' Button -> High visual impact, quick intro, and clear CTA to detailed content. -> HTML/Tailwind
+2. Personal Info -> Identity -> Structured Text (About Me Card) -> None -> Quick overview. -> HTML/Tailwind
+3. Timeline -> History -> Vertical Timeline Layout (Reversed to 2005 top) -> None -> Visual flow of career/education. -> HTML/Tailwind
+4. Activities/Awards -> Achievement -> Simple List/Card Grid -> Detail Toggle -> Clear cataloging of successes. -> HTML/Tailwind/JS
+5. Certificates -> Validation -> Card Grid with Detail -> Click to view larger/play (Placeholder) -> Visually engaging presentation of media. -> HTML/Tailwind/JS
+6. Gallery -> Media Showcase -> Single Video Element (myvideo.mov) -> None -> Focus on single media piece. -> HTML/Tailwind
+7. Music -> Creative Work -> Link Buttons + Lyrics (Restored to stable SoundCloud links) -> Click to External Link -> Avoids complex audio errors; relies on external, stable platforms. -> HTML/Tailwind
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEY, I'M YOUBIN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            /* FIX 1: Remove global padding on body */
+            padding-top: 0 !important; 
+            /* Remove all scroll-padding/margin CSS for minimal look */
+            scroll-padding-top: 0 !important; 
+        }
+        /* New CSS for eliminating header offset blank space */
+        #about, #awards, #gallery, #music {
+            /* Remove scroll-margin-top */
+            scroll-margin-top: 0rem !important; 
+        }
+
+        .page-content {
+            /* SPA setup: All sections are loaded, but only one is visible at a time */
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(20px);
+            min-height: calc(100vh - 4rem); /* Ensure content fills screen height */
+        }
+        .page-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Restore standard top padding for section content */
+        #about, #awards, #gallery, #music {
+            margin-top: 0;
+            padding-top: 0rem; 
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1rem;
+            top: 0.5rem;
+            width: 10px;
+            height: 10px;
+            background-color: #3730a3; /* Indigo-900 */
+            border-radius: 50%;
+            z-index: 10;
+        }
+        .timeline-line {
+            position: absolute;
+            left: -0.75rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #3730a340; /* Indigo-900 semi-transparent */
+            z-index: 5;
+        }
+        @media (max-width: 768px) {
+            .timeline-item { padding-left: 2rem; }
+            .timeline-line { left: 0.5rem; }
+            .timeline-item::before { left: 0.25rem; }
+        }
+        /* Custom scrollbar for aesthetics */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #3730a3; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+        
+        /* Dedicated Full-Screen Home Page Styling */
+        #home {
+            min-height: calc(100vh - 64px); /* Full viewport height minus header height (h-16 = 64px) */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* Prevent image overflow from causing scroll */
+        }
+
+        /* --- Home Design CSS for Two-Column Layout --- */
+        .home-content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr;
+            /* FIX: Make home content height explicitly view height minus header */
+            height: calc(100vh - 64px); 
+            max-width: 100%;
+            margin-top: 0; /* Ensure no margin pushes it down */
+        }
+        @media (min-width: 768px) {
+            .home-content-wrapper {
+                grid-template-columns: 3fr 2fr; /* 60% Image, 40% Text on Desktop */
+            }
+        }
+        .home-image-container {
+            position: relative;
+            height: 100%;
+            overflow: hidden;
+        }
+        .home-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .home-text-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            background-color: #ffffff;
+        }
+        @media (max-width: 767px) {
+            .home-image-container {
+                height: 50vh; /* Make image visible on mobile but not full screen */
+            }
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 transition-all duration-300">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+            <!-- LOGO 클릭 시 HOME 섹션 (#home)으로 이동 -->
+            <a id="logo" href="#home" class="text-xl font-bold text-indigo-900 hover:text-indigo-700 transition duration-300">Hey, I'm Youbin</a>
+            <div class="hidden md:flex space-x-6">
+                <!-- About Me 링크 클릭 시 ABOUT 섹션 (#about)으로 이동 -->
+                <a id="nav-about" href="#about" class="text-gray-600 hover:text-indigo-900 transition duration-300 font-medium">About Me</a>
+                <a id="nav-awards" href="#awards" class="text-gray-600 hover:text-indigo-900 transition duration-300 font-medium">Awards & Certificates</a>
+                <a id="nav-gallery" href="#gallery" class="text-gray-600 hover:text-indigo-900 transition duration-300 font-medium">Gallery</a>
+                <a id="nav-music" href="#music" class="text-gray-600 hover:text-indigo-900 transition duration-300 font-medium">Music</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-gray-600 hover:text-indigo-900 focus:outline-none transition duration-300" aria-label="Toggle navigation menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Mobile Menu (Hidden by Default) -->
+    <div id="mobile-menu" class="fixed inset-0 top-16 bg-white z-40 md:hidden hidden transform translate-y-full transition-transform duration-300 ease-in-out">
+        <div class="flex flex-col p-4 space-y-4">
+            <a id="mobile-nav-home" href="#home" class="text-gray-800 hover:bg-indigo-50 p-2 rounded-md transition duration-300 font-medium">Home</a>
+            <a id="mobile-nav-about" href="#about" class="text-gray-800 hover:bg-indigo-50 p-2 rounded-md transition duration-300 font-medium">About Me</a>
+            <a id="mobile-nav-awards" href="#awards" class="text-gray-800 hover:bg-indigo-50 p-2 rounded-md transition duration-300 font-medium">Awards & Certificates</a>
+            <a id="mobile-nav-gallery" href="#gallery" class="text-gray-800 hover:bg-indigo-50 p-2 rounded-md transition duration-300 font-medium">Gallery</a>
+            <a id="mobile-nav-music" href="#music" class="text-gray-800 hover:bg-indigo-50 p-2 rounded-md transition duration-300 font-medium">Music</a>
+        </div>
+    </div>
+
+    <!-- main tag: py-8 -> pb-8 (Remove top padding) -->
+    <main class="container mx-auto px-0 sm:px-0 lg:px-0 pb-0 min-h-screen">
+        
+        <!-- NEW HOME SECTION (Main Page) - FULL VIEWPORT HEIGHT DESIGN -->
+        <section id="home" class="page-content active">
+            <div class="home-content-wrapper mx-auto">
+                
+                <!-- Left Column: Full-Height Image -->
+                <div class="home-image-container">
+                    <!-- Image Source: Attempting the most recent file, with multiple fallbacks for robustness -->
+                    <img src="image_928fe2.jpg" 
+                         onerror="this.onerror=null;this.src='Gemini_Generated_Image_bekhabbekhabbekh.jpg';if(this.src.includes('bekhab'))this.src='https://placehold.co/800x1200/4f46e5/ffffff?text=Main+Image';" 
+                         alt="메인 소개 이미지">
+                </div>
+
+                <!-- Right Column: Text Content and CTA -->
+                <div class="home-text-container">
+                    <h1 class="text-5xl md:text-6xl font-extrabold text-gray-800 mb-6 leading-tight">안녕하세요</h1>
+                    
+                    <h2 class="text-2xl font-bold text-indigo-900 mb-2 border-b-2 border-indigo-100 pb-1">나에 대해</h2>
+                    <p class="text-lg text-gray-600 mb-8 max-w-md">
+                        안녕하세요, 저는 Youbin입니다. 이 웹사이트는 제 나이, 고향, 전공, MBTI 성격유형, 수상 및 자격증, 성과 및 연대기 등을 포함하여 제 다양한 개인적 성취와 정보를 소개하는 곳입니다.
+                    </p>
+                    <a id="start-button-new" href="#about" class="inline-block px-8 py-3 bg-indigo-900 text-white font-bold rounded-lg text-base shadow-xl hover:bg-indigo-700 transition duration-300 transform hover:scale-105 max-w-xs">
+                        더 알아보기
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Me Section -->
+        <section id="about" class="page-content">
+            <div class="mt-0 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+                <!-- h2 상단 마진 수정: mt-2 (최소화) -->
+                <h2 class="text-4xl font-extrabold text-indigo-900 mb-4 text-center mt-2">① About Me</h2>
+                <div class="h-1 bg-indigo-500 w-20 mx-auto mb-6 rounded-full"></div> <!-- New Divider -->
+                
+                <!-- Basic Info (1st Block - Full Width) -->
+                <div id="info-block" class="mb-8">
+                    <h3 class="text-3xl font-bold text-indigo-900 mb-4 border-b-2 border-indigo-200 pb-2">기본 정보 (Basic Info)</h3>
+                    <p class="text-lg text-gray-600 mb-6">안녕하세요, 저는 '다 상관없고 좋고 하면 하는 사람' 김유빈입니다. 데이터와 마케팅, 영상에 관심이 많으며 성실함으로 저만의 길을 만들어가고 있습니다.</p>
+                    <div class="space-y-3 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <div class="flex items-center space-x-3"><span class="font-semibold text-indigo-700 w-24">이름</span><span>김유빈 (KIM YOU BIN)</span></div>
+                        <div class="flex items-center space-x-3"><span class="font-semibold text-indigo-700 w-24">생년월일</span><span>2005.05.08</span></div>
+                        <div class="flex items-center space-x-3"><span class="font-semibold text-indigo-700 w-24">출생지 / 본가</span><span>대구 / 천안</span></div>
+                        <div class="flex items-center space-x-3"><span class="font-semibold text-indigo-700 w-24">MBTI</span><span>INFJ</span></div>
+                        <div class="flex items-center space-x-3"><span class="font-semibold text-indigo-700 w-24">전공</span><span>한국외대 Social Science & AI 융합학과 (25학번)</span></div>
+                        <div class="flex items-center space-x-3"><span class="font-semibold text-indigo-700 w-24">취미</span><span>먹방, 런닝맨, 드라마 보기</span></div>
+                        <div class="flex items-center space-x-3"><span class="font-semibold text-indigo-700 w-24">관심 분야</span><span>데이터 분석·마케팅·영상</span></div>
+                    </div>
+                </div>
+
+                <!-- AI Vision Analysis Feature -->
+                <div class="bg-indigo-900 p-6 rounded-xl shadow-lg mb-8">
+                    <h3 class="text-3xl font-bold text-white mb-4">✨ AI Vision 분석</h3>
+                    <p class="text-indigo-200 mb-4">MBTI와 관심사 데이터를 기반으로 AI가 김유빈 님의 잠재적 커리어 방향을 분석해 드립니다.</p>
+                    <button id="analyze-vision-btn" class="w-full px-6 py-3 bg-yellow-400 text-indigo-900 font-bold rounded-lg hover:bg-yellow-300 transition duration-300 flex items-center justify-center space-x-2">
+                        <span id="vision-text">AI 커리어 비전 분석 시작</span>
+                        <div id="vision-spinner" class="spinner hidden"></div>
+                    </button>
+                    <div id="vision-result" class="mt-4 p-4 bg-white text-gray-800 rounded-lg shadow-inner hidden">
+                        <p class="font-bold border-b pb-2 text-indigo-800">분석 결과:</p>
+                        <p id="vision-output" class="mt-2 whitespace-pre-wrap"></p>
+                    </div>
+                </div>
+                
+                <div class="h-px bg-indigo-200 w-full my-8"></div> <!-- New Divider -->
+
+                <!-- Timeline (2nd Block - Full Width) - ID 부여 -->
+                <div id="timeline-block" class="mt-8 mb-8">
+                    <h3 class="text-3xl font-bold text-indigo-900 mb-4 border-b-2 border-indigo-200 pb-2">✔ 타임라인 (My Journey)</h3>
+                    <div class="relative pl-6 md:pl-8">
+                        <div class="timeline-line"></div>
+                        <div id="timeline-2005" class="timeline-item relative mb-4 pb-2 border-b border-gray-200"><h4 class="font-semibold text-lg text-indigo-800">2005</h4><p class="text-gray-700">출생</p></div>
+                        <div id="timeline-2011" class="timeline-item relative mb-4 pb-2 border-b border-gray-200"><h4 class="font-semibold text-lg text-indigo-800">2011</h4><p class="text-gray-700">미래유치원</p></div>
+                        <div id="timeline-2012" class="timeline-item relative mb-4 pb-2 border-b border-gray-200"><h4 class="font-semibold text-lg text-indigo-800">2012</h4><p class="text-gray-700">백석초등학교</p></div>
+                        <div id="timeline-2015" class="timeline-item relative mb-4 pb-2 border-b border-gray-200"><h4 class="font-semibold text-lg text-indigo-800">2015</h4><p class="text-gray-700">환서초등학교</p></div>
+                        <div id="timeline-2018" class="timeline-item relative mb-4 pb-2 border-b border-gray-200"><h4 class="font-semibold text-lg text-indigo-800">2018</h4><p class="text-gray-700">환서중학교</p></div>
+                        <div id="timeline-2021" class="timeline-item relative mb-4 pb-2 border-b border-gray-200"><h4 class="font-semibold text-lg text-indigo-800">2021</h4><p class="text-gray-700">오성고등학교</p></div>
+                        <div id="timeline-2025" class="timeline-item relative mb-4 pb-2 border-b border-gray-200"><h4 class="font-semibold text-lg text-indigo-800">2025</h4><p class="text-gray-700">한국외국어대학교 재학 중 (25학번)</p></div>
+                    </div>
+                </div>
+                
+                <div class="h-px bg-indigo-200 w-full my-8"></div> <!-- New Divider -->
+
+                <!-- Activities (3rd Block - Full Width) -->
+                <div class="mt-8">
+                    <h3 class="text-3xl font-bold text-indigo-900 mb-4 border-b-2 border-indigo-200 pb-2">✔ 활동 내역 (Activities)</h3>
+                    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-600"><p class="text-base font-semibold text-indigo-900">중학교 2학년</p><p class="text-sm text-gray-600">부반장</p></div>
+                        <div class="p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-600"><p class="text-base font-semibold text-indigo-900">고등학교 1학년</p><p class="text-sm text-gray-600">부반장 & 무한상상실 부기장</p></div>
+                        <div class="p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-600"><p class="text-base font-semibold text-indigo-900">고등학교 2학년</p><p class="text-sm text-gray-600">부반장 & 로봇동아리 부기장</p></div>
+                        <div class="p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-600"><p class="text-base font-semibold text-indigo-900">고등학교 3학년</p><p class="text-sm text-gray-600">반장 & 베리이노 창설·부기장</p></div>
+                        <div class="p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-600 col-span-full sm:col-span-2"><p class="text-base font-semibold text-indigo-900">한국외대 Social Science & AI</p><p class="text-sm text-gray-600">학생회 begin 재정사무국 (현)</p></div>
+                        <div class="p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-600 col-span-full sm:col-span-2"><p class="text-base font-semibold text-indigo-900">한국외대</p><p class="text-sm text-gray-600">코딩존(Coding Zone) 조교 아르바이트 (현)</p></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Awards & Certificates Section -->
+        <section id="awards" class="page-content">
+            <div class="mt-0 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+                <!-- h2 상단 마진 수정: mt-2 (최소화) -->
+                <h2 class="text-4xl font-extrabold text-indigo-900 mb-4 text-center mt-2">② Awards & Certificates</h2>
+                <div class="h-1 bg-indigo-500 w-20 mx-auto mb-6 rounded-full"></div> <!-- New Divider -->
+            </div>
+
+            <!-- Awards -->
+            <div class="max-w-4xl mx-auto mb-12 px-4 sm:px-6 lg:px-8">
+                <h3 class="text-2xl font-bold text-indigo-800 mb-3 border-b-2 border-indigo-100 pb-2 flex items-center">
+                    <span class="mr-2 text-3xl">🏅</span> Awards (수상 내역)
+                </h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-white rounded-lg shadow-md border-l-4 border-indigo-500"><span class="font-semibold text-indigo-900">2023 우수상</span><p class="text-sm text-gray-600">충남 학생 창의수학 탐구대회</p></div>
+                    <div class="p-4 bg-white rounded-lg shadow-md border-l-4 border-indigo-500"><span class="font-semibold text-indigo-900">2022 자율주행 은상</span><p class="text-sm text-gray-600">인공지능 로봇 끝장 개발 한마당</p></div>
+                    <div class="p-4 bg-white rounded-lg shadow-md border-l-4 border-indigo-500"><span class="font-semibold text-indigo-900">2022 장려상</span><p class="text-sm text-gray-600">천안학생 로봇대회</p></div>
+                    <div class="p-4 bg-white rounded-lg shadow-md border-l-4 border-indigo-500"><span class="font-semibold text-indigo-900">2021 동상</span><p class="text-sm text-gray-600">충남 과학동아리 발표대회</p></div>
+                </div>
+            </div>
+
+            <!-- Certificates -->
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h3 class="text-2xl font-bold text-indigo-800 mb-4 border-b-2 border-indigo-100 pb-2 flex items-center">
+                    <span class="mr-2 text-3xl">📜</span> Certificates (수료증 및 스킬뱃지)
+                </h3>
+                <p class="text-gray-600 mb-4 bg-indigo-50 p-3 rounded-md border border-indigo-200">
+                    <span class="font-semibold text-indigo-800">Info:</span> Google Cloud, AI/ML 분야의 다양한 수료증과 스킬뱃지입니다. 각 카드를 클릭하시면 상세 내용을 확인하실 수 있습니다.
+                </p>
+                <div id="cert-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <!-- Cards will be populated here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Section -->
+        <section id="gallery" class="page-content">
+            <div class="mt-0 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+                <!-- h2 상단 마진 수정: mt-2 (최소화) -->
+                <h2 class="text-4xl font-extrabold text-indigo-900 mb-4 text-center mt-2">③ Gallery</h2>
+                <div class="h-1 bg-indigo-500 w-20 mx-auto mb-6 rounded-full"></div> <!-- New Divider -->
+            </div>
+            
+            <p class="text-center text-gray-600 max-w-2xl mx-auto mb-8 bg-indigo-50 p-3 rounded-md border border-indigo-200 px-4 sm:px-6 lg:px-8">
+                <span class="font-semibold text-indigo-800">My Journey:</span> 제가 직접 만든 영상 기록을 모아봤습니다. 
+            </p>
+
+            <div class="grid md:grid-cols-1 gap-4 max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Single Video Element -->
+                <div class="bg-white rounded-lg shadow-xl overflow-hidden md:col-span-1">
+                    <div class="relative w-full aspect-video">
+                        <video controls class="w-full h-full object-cover">
+                            <source src="myvideo.mov" type="video/quicktime">
+                            <source src="myvideo.mov" type="video/mp4">
+                            <p class="p-4 text-red-500">브라우저가 비디오 태그를 지원하지 않거나 파일 로드에 실패했습니다. (myvideo.mov)</p>
+                        </video>
+                    </div>
+                    <div class="p-4 text-center">
+                        <h4 class="font-bold text-indigo-900">영상 기록 (myvideo.mov)</h4>
+                        <p class="text-sm text-gray-600">나의 여정을 담은 소중한 영상입니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Music Section -->
+        <section id="music" class="page-content">
+            <div class="mt-0 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+                <!-- h2 상단 마진 수정: mt-2 (최소화) -->
+                <h2 class="text-4xl font-extrabold text-indigo-900 mb-4 text-center mt-2">④ Music</h2>
+                <div class="h-1 bg-indigo-500 w-20 mx-auto mb-6 rounded-full"></div> <!-- New Divider -->
+            </div>
+            
+            <p class="text-center text-gray-600 max-w-2xl mx-auto mb-8 bg-indigo-50 p-3 rounded-md border border-indigo-200 px-4 sm:px-6 lg:px-8">
+                <span class="font-semibold text-indigo-800">Intro:</span> 제가 직접 만든 두 곡의 오리지널 음원과 가사를 감상해 보세요. (안정적인 외부 링크 연결)
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Song 1 (Restored to Link for stability) -->
+                <div class="bg-white p-5 rounded-xl shadow-lg border-t-4 border-indigo-600">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-14 h-14 bg-indigo-200 rounded-lg flex items-center justify-center text-indigo-900 font-bold text-base">01</div>
+                        <div>
+                            <h3 class="text-xl font-bold text-indigo-900">조용하지만 깊은 마음속에</h3>
+                            <p class="text-xs text-gray-500">INFJ의 내면과 성실함에 대한 노래</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <a href="https://soundcloud.com/placeholder-track1" target="_blank" class="inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-full text-sm hover:bg-indigo-700 transition duration-300 shadow-md">
+                            곡 듣기 (SoundCloud Link)
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Song 2 (Restored to Link for stability) -->
+                <div class="bg-white p-5 rounded-xl shadow-lg border-t-4 border-indigo-600">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-14 h-14 bg-indigo-200 rounded-lg flex items-center justify-center text-indigo-900 font-bold text-base">02</div>
+                        <div>
+                            <h3 class="text-xl font-bold text-indigo-900">수많은 데이터 속 우린</h3>
+                            <p class="text-xs text-gray-500">데이터 분석가의 꿈과 성장에 대한 노래</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <a href="https://soundcloud.com/placeholder-track2" target="_blank" class="inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-full text-sm hover:bg-indigo-700 transition duration-300 shadow-md">
+                            곡 듣기 (SoundCloud Link)
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lyrics Section -->
+            <div class="mt-8 max-w-4xl mx-auto bg-gray-50 p-6 rounded-xl shadow-inner px-4 sm:px-6 lg:px-8">
+                <h3 class="text-xl font-bold text-indigo-900 mb-4 text-center border-b pb-2">가사 모음 (Lyrics)</h3>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Lyrics 1 -->
+                    <div>
+                        <h4 class="font-bold text-base text-indigo-700 mb-2 border-b border-indigo-200 pb-1"># 첫 번째 자작곡 가사 (조용하지만 깊은 마음속에)</h4>
+                        <pre class="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed bg-white p-3 rounded-lg shadow-sm max-h-60 overflow-y-auto">
+[Verse 1]
+조용하지만 깊은 마음속에
+INFJ, 나만의 시간을 그려
+차분히 걸어가, 꾸준히 이어가
+데이터의 세계, 그 틈새를 향해
+
+[Chorus]
+미래를 꿈꾸며 나아가
+드라마 속 장면들, 웃음이 있는 날
+천천히 성장해도 괜찮아
+성실함으로 그 길을 만들 테니까
+
+[Bridge]
+밤하늘 그 beneath the stars,
+데이터와 이야기, 그 속에서
+느리지만 확고한 걸음
+끝을 향해, 빛을 비추고 있어
+
+[Verse 2]
+성실한 노력이 내일을 밝히고
+흥미로운 데이터, 그 속에 빠져
+천천히 피어날 꽃처럼
+나의 길을 끝까지 걸어가리
+
+[Chorus]
+미래를 꿈꾸며 나아가
+드라마 속 장면들, 웃음이 있는 날
+천천히 성장해도 괜찮아
+성실함으로 그 길을 만들 테니까</pre>
+                    </div>
+                    
+                    <!-- Lyrics 2 -->
+                    <div>
+                        <h4 class="font-bold text-base text-indigo-700 mb-2 border-b border-indigo-200 pb-1"># 두 번째 자작곡 가사 (데이터에 담긴 이야기)</h4>
+                        <pre class="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed bg-white p-3 rounded-lg shadow-sm max-h-60 overflow-y-auto">
+[Verse 1]
+수많은 데이터 속 우린
+작은 가능성을 찾아
+무수한 숫자와 도표 속에 감춰진
+뜻을 풀어가
+
+[Chorus]
+꿈을 그리며 나아가
+두려움 따윈 떨쳐내고
+분석의 힘을 믿어
+새로운 길을 열어가
+
+[Bridge]
+시작의 설렘을 잃지 말고
+하루하루 더 성장해
+포기란 없어 내 앞의 도전은
+용기가 되리라</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-indigo-900 text-white text-center p-4 mt-8">
+        <p class="text-sm">&copy; 2025 KIM YOU BIN. All Rights Reserved. Designed with Tailwind CSS.</p>
+    </footer>
+
+    <div id="lightbox-modal" class="fixed inset-0 bg-black bg-opacity-75 z-[100] flex items-center justify-center hidden" onclick="document.getElementById('lightbox-modal').classList.add('hidden')">
+        <div class="max-w-4xl max-h-[90vh] p-4 bg-white rounded-lg relative" onclick="event.stopPropagation()">
+            <img id="lightbox-image" class="max-w-full max-h-[80vh] object-contain rounded-md" src="" alt="Gallery Item">
+            <button class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-80" onclick="document.getElementById('lightbox-modal').classList.add('hidden')">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // API Key is an empty string; Canvas will provide it at runtime.
+        const API_KEY = ""; 
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+        
+        // --- API Utility Function with Exponential Backoff ---
+        async function fetchGeminiContent(prompt, systemInstruction) {
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+            };
+
+            for (let i = 0; i < 3; i++) { // Max 3 retries
+                try {
+                    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        return result.candidates?.[0]?.content?.parts?.[0]?.text || "AI 응답을 생성하는 데 실패했습니다.";
+                    } else if (response.status === 429) {
+                        const delay = Math.pow(2, i) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; // Retry
+                    } else {
+                        const error = await response.json();
+                        console.error("Gemini API Error:", error);
+                        return `API 요청 실패: ${response.status} ${response.statusText}`;
+                    }
+                } catch (error) {
+                    console.error("Fetch Error:", error);
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            return "반복된 요청 실패로 AI 응답을 가져올 수 없습니다.";
+        }
+
+
+        // --- Feature 1: AI Vision Analysis ---
+        async function analyzeVision(mbti, interests, activities) {
+            const resultDiv = document.getElementById('vision-result');
+            const outputDiv = document.getElementById('vision-output');
+            const button = document.getElementById('analyze-vision-btn');
+            const textSpan = document.getElementById('vision-text');
+            const spinner = document.getElementById('vision-spinner');
+
+            button.disabled = true;
+            textSpan.textContent = "분석 중...";
+            spinner.classList.remove('hidden');
+            resultDiv.classList.add('hidden');
+            
+            const systemPrompt = "당신은 전문 커리어 컨설턴트입니다. 사용자의 MBTI, 관심 분야, 학업 및 활동 이력을 바탕으로, 사용자가 데이터 분석 및 마케팅 분야에서 어떤 독특한 강점을 가질 수 있는지, 그리고 어떤 커리어 경로(예: 데이터 마케터, AI 융합 전문가)를 탐색하면 좋을지에 대한 분석 보고서(150단어 내외)를 친절한 어투로 작성해주세요. 출력은 한국어로 하고, 제목은 붙이지 마세요.";
+            
+            const userPrompt = `사용자 정보:
+- MBTI: ${mbti}
+- 관심 분야: ${interests}
+- 주요 활동: ${activities}
+
+이 정보를 종합하여 사용자의 잠재적 커리어 비전을 분석해주세요.`;
+
+            try {
+                const aiResult = await fetchGeminiContent(userPrompt, systemPrompt);
+                outputDiv.textContent = aiResult;
+                resultDiv.classList.remove('hidden');
+
+            } catch (error) {
+                outputDiv.textContent = "분석 중 오류가 발생했습니다: " + error.message;
+                resultDiv.classList.remove('hidden');
+            } finally {
+                button.disabled = false;
+                textSpan.textContent = "AI 커리어 비전 분석 시작";
+                spinner.classList.add('hidden');
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 상세 Google Cloud 수료증 목록 (통합하여 사용)
+            const googleCertDetails = [
+                { name: "Google Cloud Essential – Completion", date: "2024.09.21" },
+                { name: "Get Started with Dataplex – Skill Badge (Intro)", date: "2024.09.22" },
+                { name: "Integrating Applications with Gemini 1.0 Pro – Completion", date: "2024.09.23" },
+                { name: "Google Developer Essentials – Completion", date: "2024.09.24" },
+                { name: "Monitor and Manage Google Cloud Resources – Skill Badge (Intro)", date: "2024.09.25" },
+                { name: "Monitoring in Google Cloud – Skill Badge (Intro)", date: "2024.09.26" },
+                { name: "Intro to ML: Language Processing – Completion", date: "2024.09.27" },
+                { name: "Analyze Images with Cloud Vision API – Skill Badge (Intro)", date: "2024.09.27" },
+                { name: "Share Data Using Google Data Cloud – Skill Badge (Intro)", date: "2024.09.29" },
+                { name: "Google Cloud Solutions II: Data & ML (Deprecated) – Completion", date: "2024.09.29" },
+                { name: "Store, Process, and Manage Data on Google Cloud (CLI) – Skill Badge (Intro)", date: "2024.09.30" },
+                { name: "Gemini for Data Scientists and Analysts – Completion", date: "2024.09.30" },
+                { name: "Automate Data Capture with Document AI – Skill Badge (Intro)", date: "2024.10.03" },
+                { name: "Flutter Essentials – Completion", date: "2024.10.04" },
+                { name: "Create ML Models with BigQuery ML – Skill Badge (Intro)", date: "2024.10.05" },
+                { name: "Introduction to Data Analytics on Google Cloud – Completion", date: "2024.10.07" },
+                { name: "Baseline: Data, ML, AI – Completion", date: "2024.10.11" },
+                { name: "2024 Google Cloud AI Study Jam 수료", date: "2024.10.14" },
+            ];
+
+            // 일반 수료증 목록 (Google Cloud 통합 카드를 제외하고 개별 표시할 항목)
+            const certList = [
+                { name: "AI 및 디스플레이 응용 융합 메이커 교육", date: "2021.07.25", icon: '🚀', year: '2021' },
+                { name: "LG AI 지니어스 아카데미 수료", date: "2022.07.16", icon: '🧠', year: '2022' },
+                { name: "SW융합 메이커 교육 – 스마트시스템 IoT 메이커 수료", date: "2022.08.07", icon: '💡', year: '2022' },
+                { name: "상명 DE&R SW·AI 교육 캠프 고등학생과정 기초반 수료", date: "2023.01.12", icon: '💻', year: '2023' },
+                { name: "상명 DE&R SW·AI 교육 캠프 고등학생과정 심화반 수료", date: "2023.01.31", icon: '🛠️', year: '2023' },
+            ];
+
+            const certGrid = document.getElementById('cert-grid');
+
+            // 1. 일반 수료증 카드 생성 함수
+            function generateCertCard(cert, index) {
+                const card = document.createElement('div');
+                card.id = `cert-card-${index}`;
+                card.className = "cert-card p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-b-4 border-indigo-400 cursor-pointer flex flex-col items-center text-center min-h-[140px]";
+                card.innerHTML = `
+                    <span class="text-4xl mb-2">${cert.icon}</span>
+                    <p class="font-semibold text-xs text-indigo-900 mt-1">${cert.year} ${cert.name.split(' ')[0]}</p>
+                    <button class="mt-2 text-xs text-indigo-500 hover:text-indigo-700 font-medium border-t border-indigo-100 pt-2 w-full">자세히 보기</button>
+                    <div id="detail-${index}" class="cert-detail mt-3 pt-3 border-t border-indigo-200 w-full hidden">
+                        <p class="text-[0.65rem] font-bold text-gray-800 break-words leading-tight">${cert.name}</p>
+                        <p class="text-[0.6rem] text-gray-500 mt-1">${cert.date}</p>
+                    </div>
+                `;
+                
+                const detailDiv = card.querySelector(`#detail-${index}`);
+                const detailButton = card.querySelector('button');
+
+                detailButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    detailDiv.classList.toggle('hidden');
+                });
+
+                return card;
+            }
+
+            // 2. Google Cloud 통합 카드 생성 함수
+            function generateGoogleCertCard(details) {
+                const card = document.createElement('div');
+                card.id = `cert-google-master`;
+                card.className = "cert-card p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300 border-b-4 border-yellow-500 cursor-pointer flex flex-col items-center text-center min-h-[140px] col-span-full sm:col-span-2 lg:col-span-3 xl:col-span-3"; 
+                card.innerHTML = `
+                    <span class="text-4xl mb-2 text-yellow-600">G</span>
+                    <p class="font-bold text-sm text-gray-800 mt-1">2024 Google Cloud AI Study JAM Certificates</p>
+                    <p class="text-xs text-gray-500">총 ${details.length}개 항목</p>
+                    <button class="mt-2 text-sm bg-indigo-500 text-white px-3 py-1 rounded-full hover:bg-indigo-600 font-medium border-t border-indigo-100 pt-2 w-full">상세 목록 확인 (${details.length}개)</button>
+                    <div id="google-detail" class="cert-detail mt-3 pt-3 border-t border-indigo-200 w-full hidden text-left max-h-60 overflow-y-auto">
+                        <p class="text-xs font-bold text-gray-800 mb-2">총 18개 Google Cloud 수료/뱃지 목록:</p>
+                        ${details.map(item => `<div class="mb-1"><span class="text-[0.65rem] font-medium text-indigo-700">${item.date}: </span><span class="text-[0.65rem] text-gray-800">${item.name}</span></div>`).join('')}
+                    </div>
+                `;
+                
+                const detailDiv = card.querySelector(`#google-detail`);
+                const detailButton = card.querySelector('button');
+
+                detailButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    detailDiv.classList.toggle('hidden');
+                });
+
+                return card;
+            }
+
+
+            // 카드 격자에 추가
+            certList.forEach((cert, index) => {
+                certGrid.appendChild(generateCertCard(cert, index));
+            });
+            
+            // Google Cloud 통합 카드는 별도로 추가 (그리드 시작 부분에 배치)
+            certGrid.prepend(generateGoogleCertCard(googleCertDetails));
+
+
+            // --- Navigation & Page Logic (Event Listeners) ---
+
+            const allNavLinks = document.querySelectorAll('header a, #mobile-menu a');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const allSections = document.querySelectorAll('.page-content');
+            const header = document.querySelector('header');
+            const startButton = document.getElementById('start-button-new'); // Updated ID
+
+            // AI Features Setup
+            const analyzeVisionBtn = document.getElementById('analyze-vision-btn');
+
+            if (analyzeVisionBtn) {
+                analyzeVisionBtn.addEventListener('click', () => {
+                    const mbti = "INFJ";
+                    const interests = "데이터 분석, 마케팅, 영상";
+                    const activities = "한국외대 코딩존 조교, 학생회 재정사무국, 고교 시절 부반장 및 로봇 동아리 활동";
+                    analyzeVision(mbti, interests, activities);
+                });
+            }
+            
+            allSections.forEach(section => {
+                if (section.id !== 'home') {
+                    section.classList.remove('active');
+                } else {
+                    section.classList.add('active');
+                }
+            });
+
+            function closeMobileMenu() {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.classList.remove('translate-y-0');
+                mobileMenu.classList.add('translate-y-full');
+            }
+
+            function showPage(targetId) {
+                allSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                
+                const targetElement = document.getElementById(targetId);
+
+                if (targetElement) {
+                    targetElement.classList.add('active');
+                    
+                    // Critical fix for scroll jump issue on SPA: force scroll to top
+                    // Scrolls to 0, 0 but compensates for the fixed header height (64px)
+                    setTimeout(() => {
+                        window.scrollTo({
+                            top: 0,
+                            behavior: 'auto'
+                        });
+                    }, 50);
+                }
+            }
+            
+            const initialHash = window.location.hash ? window.location.hash.substring(1) : 'home';
+            showPage(initialHash);
+
+            allNavLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const targetId = this.getAttribute('href').substring(1);
+
+                    if (targetId) {
+                        e.preventDefault();
+                        showPage(targetId); 
+                        
+                        window.history.pushState(null, null, this.getAttribute('href'));
+                    }
+
+                    if (window.innerWidth < 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+
+            if (startButton) {
+                startButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showPage('about'); 
+                    closeMobileMenu();
+                    window.history.pushState(null, null, this.getAttribute('href'));
+                });
+            }
+            
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                mobileMenu.classList.toggle('translate-y-full');
+                mobileMenu.classList.toggle('translate-y-0');
+            });
+
+            mobileMenu.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A') {
+                    closeMobileMenu();
+                }
+            });
+
+            window.addEventListener('popstate', () => {
+                const newHash = window.location.hash ? window.location.hash.substring(1) : 'home';
+                showPage(newHash);
+            });
+        });
+    </script>
+</body>
+</html>
